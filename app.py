@@ -1,4 +1,3 @@
-# %%
 import streamlit as st
 from elasticsearch import Elasticsearch
 import pandas as pd
@@ -19,18 +18,25 @@ es = Elasticsearch(
     cloud_id=cloud_id,
     basic_auth=(auth_user, auth_pass),
 )
-
-# Function to perform search on Elasticsearch
+# Function to perform search on Elasticsearch with sorting
 def search_companies(query):
     body = {
         "query": {
             "multi_match": {
                 "query": query,
-                "fields": ["name", "capital_iq_description"]
+                "fields": ["name"]#, "capital_iq_description"]
             }
-        }
+        },
+        # sort by founded year in ascending order
+        "sort": [
+            {
+                "founded_year": {
+                    "order": "asc"
+                }
+            }
+        ]
     }
-    response = es.search(index="your_index_name", body=body)  # Update with your index name
+    response = es.search(index="search-capiq_v1.0.0_dev", body=body, size=1000)
     return response
 
 # Streamlit app with password protection
@@ -53,14 +59,14 @@ def main():
                 data.append({
                     'capiq_id': source['alpha_id'],
                     'name': source['name'],
-                    'description': source.get('capital_iq_description', 'N/A'),
-                    'address': source.get('address', 'N/A'),
-                    'homepage_url': source.get('homepage_url', 'N/A'),
-                    'city': source.get('city', 'N/A'),
-                    'country_code': source.get('country_code', 'N/A'),
-                    'founded_year': source.get('founded_year', 'N/A'),
                     'employee_count_range': source.get('capital_iq_employee_count_range', 'N/A'),
+                    'homepage_url': source.get('homepage_url', 'N/A'),
+                    'description': source.get('capital_iq_description', 'N/A'),
+                    'founded_year': source.get('founded_year', 'N/A'),
                     'specialties': source.get('specialties', 'N/A'),
+                    'country_code': source.get('country_code', 'N/A'),
+                    'city': source.get('city', 'N/A'),
+                    'address': source.get('address', 'N/A'),
                 })
             
             df = pd.DataFrame(data)
@@ -72,7 +78,7 @@ def main():
 def password_check():
     st.title("Authentication")
     password = st.text_input("Enter password", type="password")
-    if password == login_password:  # Replace 'your_password' with your actual password
+    if password == login_password: 
         st.success("Password correct")
         return True
     elif password:
@@ -81,7 +87,7 @@ def password_check():
     return None
 
 if __name__ == "__main__":
+    st.set_page_config(page_title="Bronze Search App", layout="wide")
+
     if password_check():
         main()
-
-# %%
